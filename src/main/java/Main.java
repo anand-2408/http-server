@@ -13,20 +13,27 @@ public class Main {
         // You can use print statements as follows for debugging, they'll be visible when running tests.
         System.out.println("Logs from your program will appear here!");
 
-        ServerSocket serverSocket = null;
-        Socket clientSocket = null;
-
-        try {
-            serverSocket = new ServerSocket(4221);
+        try (ServerSocket serverSocket = new ServerSocket(4221)) {
             serverSocket.setReuseAddress(true);
-            clientSocket = serverSocket.accept(); // Wait for connection from client.
-            System.out.println("accepted new connection");
 
+            while (true) {
+                Socket clientSocket = serverSocket.accept(); // Wait for connection from client.
+                System.out.println("accepted new connection");
             // Create an InputStream from the client socket.
+                // Handle each client connection in a separate thread.
+                new Thread(() -> handleClient(clientSocket)).start();
+            }
+        } catch (IOException e) {
+            System.out.println("IOException: " + e.getMessage());
+        }
+    }
+    private static void handleClient(Socket clientSocket) {
+        try {
             BufferedReader inputStream = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
             // Read the request line
             String requestLine = inputStream.readLine();
+
             // Read all the headers from the HTTP request.
             Map<String, String> headers = new HashMap<>();
             String headerLine;
@@ -51,14 +58,11 @@ public class Main {
             outputStream.close();
         } catch (IOException e) {
             System.out.println("IOException: " + e.getMessage());
-        }  finally {
-            // Close the client socket and server socket.
+        } finally {
+            // Close the client socket.
             try {
                 if (clientSocket != null) {
                     clientSocket.close();
-                }
-                if (serverSocket != null) {
-                    serverSocket.close();
                 }
             } catch (IOException e) {
                 System.out.println("IOException: " + e.getMessage());
