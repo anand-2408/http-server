@@ -33,13 +33,9 @@ public class Main {
             OutputStream outputStream = clientSocket.getOutputStream();
 
             // Write the HTTP response to the output stream.
-            String httpResponse;
-            if ("/".equals(urlPath)) {
-                httpResponse = "HTTP/1.1 200 OK\r\n\r\n";
-            } else {
-                httpResponse = "HTTP/1.1 404 Not Found\r\n\r\n";
-            }
+            String httpResponse = getHttpResponse(urlPath);
             outputStream.write(httpResponse.getBytes("UTF-8"));
+
 
             // Close the input and output streams.
             inputStream.close();
@@ -59,5 +55,19 @@ public class Main {
                 System.out.println("IOException: " + e.getMessage());
             }
         }
+    }
+
+    private static String getHttpResponse(String urlPath) {
+        String httpResponse;
+        if("/".equals(urlPath)) {
+            httpResponse = "HTTP/1.1 200 OK\r\n\r\n";
+        }
+        else if (urlPath.startsWith("/echo/")) {
+            String echoStr = urlPath.substring(6); // Extract the string after "/echo/"
+            httpResponse = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + echoStr.length() + "\r\n\r\n" + echoStr;
+        } else {
+            httpResponse = "HTTP/1.1 404 Not Found\r\n\r\n";
+        }
+        return httpResponse;
     }
 }
