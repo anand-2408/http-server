@@ -1,16 +1,19 @@
-import javax.print.DocFlavor;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
 public class Main {
+    private static String directory;
     public static void main(String[] args) {
-        // You can use print statements as follows for debugging, they'll be visible when running tests.
+
+        // Parse command line arguments
+        if (args.length > 1 && args[0].equals("--directory")) {
+            directory = args[1];
+        }
+
         System.out.println("Logs from your program will appear here!");
 
         try (ServerSocket serverSocket = new ServerSocket(4221)) {
@@ -70,7 +73,7 @@ public class Main {
         }
     }
 
-    private static String getHttpResponse(String urlPath, Map<String, String> headers) {
+    private static String getHttpResponse(String urlPath, Map<String, String> headers) throws IOException{
         String httpResponse;
         if("/".equals(urlPath)) {
             httpResponse = "HTTP/1.1 200 OK\r\n\r\n";
@@ -81,6 +84,15 @@ public class Main {
         } else if ("/user-agent".equals(urlPath)) {
             String userAgent = headers.get("User-Agent");
             httpResponse = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + userAgent.length() + "\r\n\r\n" + userAgent;
+        } else if (urlPath.startsWith("/files/")) {
+            String filename = urlPath.substring(7); // Extract the filename after "/files/"
+            File file = new File(directory, filename);
+            if (file.exists()) {
+                byte[] fileContent = Files.readAllBytes(file.toPath());
+                httpResponse = "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: " + fileContent.length + "\r\n\r\n" + new String(fileContent);
+            } else {
+                httpResponse = "HTTP/1.1 404 Not Found\r\n\r\n";
+            }
         } else {
             httpResponse = "HTTP/1.1 404 Not Found\r\n\r\n";
         }
