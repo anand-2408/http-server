@@ -4,6 +4,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.GZIPOutputStream;
 
 public class Main {
     private static String directory;
@@ -53,7 +54,7 @@ public class Main {
             OutputStream outputStream = clientSocket.getOutputStream();
 
             /// Write the HTTP response to the output stream.
-            String httpResponse = getHttpResponse(httpMethod, urlPath, headers, inputStream);
+            String httpResponse = getHttpResponse(httpMethod, urlPath, headers, inputStream, outputStream);
             System.out.println("Sending response: " + httpResponse);
             outputStream.write(httpResponse.getBytes("UTF-8"));
 
@@ -74,7 +75,7 @@ public class Main {
         }
     }
 
-    private static String getHttpResponse(String httpMethod, String urlPath, Map<String, String> headers, BufferedReader inputStream) throws IOException {
+    private static String getHttpResponse(String httpMethod, String urlPath, Map<String, String> headers, BufferedReader inputStream, OutputStream outputStream) throws IOException {
         String httpResponse;
         if ("GET".equals(httpMethod)) {
             if ("/".equals(urlPath)) {
@@ -93,7 +94,15 @@ public class Main {
                     }
                 }
                 if (supportsGzip) {
-                    httpResponse = "HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Type: text/plain\r\nContent-Length: " + echoStr.length() + "\r\n\r\n" + echoStr;
+                    // Compress the response body using gzip
+                    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                    try (GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream)) {
+                        gzipOutputStream.write(echoStr.getBytes("UTF-8"));
+                    }
+                    byte[] gzipData = byteArrayOutputStream.toByteArray();
+                    httpResponse = "HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Type: text/plain\r\nContent-Length: " + gzipData.length + "\r\n\r\n";
+                    outputStream.write(httpResponse.getBytes("UTF-8"));
+                    outputStream.write(gzipData);
                 } else {
                     httpResponse = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + echoStr.length() + "\r\n\r\n" + echoStr;
                 }
