@@ -42,7 +42,7 @@ public class Main {
             OutputStream outputStream = clientSocket.getOutputStream();
 
             // Write the HTTP response to the output stream.
-            String httpResponse = getHttpResponse(urlPath);
+            String httpResponse = getHttpResponse(urlPath, headers);
             outputStream.write(httpResponse.getBytes("UTF-8"));
 
 
